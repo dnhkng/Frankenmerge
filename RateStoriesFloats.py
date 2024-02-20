@@ -62,6 +62,14 @@ match args.reviewer:
         formatter = AutoTokenizer.from_pretrained(
             "mistralai/Mixtral-8x7B-Instruct-v0.1"
         )
+    case "Miqu":
+        ratingLLM = "Miqu"
+        ratingModelDirectory = (
+            "/home/dnhkng/Documents/models/miqu-1-70b-sf-5.0bpw-h6-exl2"
+        )
+        formatter = AutoTokenizer.from_pretrained(
+            "mistralai/Mixtral-8x7B-Instruct-v0.1"
+        )
     case _:
         print("Invalid rating model")
         quit()
@@ -151,102 +159,81 @@ The initial contact had been made. The aliens had communicated, not through word
 From that day forward, humanity and the extraterrestrial beings began a dialogue, a conversation that spanned the cosmos. They shared knowledge, ideas, and cultures. They learned from each other, growing together as one interconnected civilization. And so, the universe sang a new song, a symphony of stars, a testament to the power of communication and the boundless possibilities of the cosmos."""
 
 entry = """In the heart of the Old World, where the sun sets in a blaze of crimson and gold, lies the bustling seaport of Port Royal. Its cobblestone streets echo with the cacophony of merchants hawking their wares, sailors singing shanties, and children laughing. But beneath this veneer of merriment, lurks an inescapable truth: this is a town built on the blood of the damned. I am its grim guardian.
-
 I, the Hooded Reaper, have borne witness to countless lives claimed by the merciless sea and the even more merciless men who ply her waters. Today, I stand at the precipice of another tale of infamy, as the life of a notorious pirate comes to an end.
-
 The sun had barely risen when the shackled figure was led before me. His name was Blackbeard, the terror of the Seven Seas. His legend had grown like a cancer, spreading fear and awe in equal measure. He stood tall and defiant, his eyes burning with the fire of rebellion. But as he looked upon me, he knew his time had come.
-
 As the crowd gathered, I could feel the weight of their anticipation. They came to see justice served, to witness the spectacle of a pirate's end. I, too, had grown weary of Blackbeard's reign of terror. Yet, as I prepared to execute him, I couldn't help but feel a pang of sadness. For beneath the fear and the violence, there was a man - a man who had once been a part of this very community.
-
 Blackbeard's hands were bound, his beard hidden beneath a thick hood. He looked every inch the pirate king, his eyes filled with a mixture of defiance and resignation. As I approached, he spoke, his voice barely above a whisper.
-
 "Reaper," he said, "I know what you are. I've seen the likes of you before. But I've lived a good life, taken what I wanted, and given as good as I got. I've earned my place in the afterlife."
-
 I remained silent, my face hidden behind the mask of my hood. I had heard such words before, from men and women who thought they had lived lives worth living. But the law was the law, and there was no room for mercy in its cold, unyielding grasp.
-
 As the noose was placed around his neck, Blackbeard's demeanor changed. He closed his eyes, took a deep breath, and spoke one final words.
-
 "Farewell, Reaper. May the sea be kind to you."
-
 With that, he jumped from the makeshift gallows, the noose tightening around his neck. The crowd gasped in shock, but I knew what was coming. I watched as the life drained from his eyes, his body twitching and convulsing in its final moments. And then, silence.
-
 As the sun set over Port Royal, I stood there, the Hooded Reaper, watching as the tide carried Blackbeard's lifeless body away. Another pirate's tale had come to an end, another chapter in the endless saga of the sea written in the blood of the damned. But as I turned to leave, I couldn't help but wonder: would there ever be an end to this cycle of violence and retribution? Or would the sea forever be stained with the blood of those who dared to defy the law?
-
 And so, I continue my vigil, the Hooded Reaper, the grim guardian of Port Royal, waiting for the next tale of infamy to unfold. For the sea is a cruel mistress, and her children are a restless, violent lot. But I will be there, ready to mete out justice, no matter the cost."""
 
-# entry = "the kitty cat done sat on mat!"
+entry = "the kitty cat done sat on mat!"
 
 
-def generatePrompt(theme, entry):
+def generatePrompt(theme, entry, criteriaName, criteriaDefinition):
+    prompt = (
+        "As a professional editor and connoisseur of literature, your role is pivotal in assessing the upcoming story. This narrative is a submission for a prestigious competition aimed at nurturing amateur writers, making it imperative that your evaluation is both equitable and comprehensive. Prior to assigning your score, you are encouraged to engage deeply with the content, ensuring that your critique is informed and nuanced. The central theme of the narrative will be disclosed to guide your analysis. Additionally, a structured ranking system will be made available to you, designed to streamline the evaluation process and maintain consistency across various dimensions of literary excellence. Your expert judgement is not just a contribution, but a cornerstone in the advancement and recognition of emerging literary talent. \n\n***** Given Theme *****\n"
+        + theme
+        + "\n\n***** Competition Entry *****\n"
+        + entry
+        + "\n\n**** Rating System *****\nUse the following rating system "
+        + criteria[criteriaName]
+        + "\n"
+        + dictToString(criteriaDefinition)
+        + "\n\nUpon reviewing the narrative in accordance with the provided rating systems, please concentrate your evaluation into a singular, precise judgement for the entry. Respond with only one character that aligns with your considered evaluation, ranging from the lowest to the highest tier as defined.\n"
+        + "\n***** Rating *****\n"
+        + "'"
+    )
+    return prompt
+
+
+def generateAllPrompt(theme, entry):
     return {
-        "craftsmanship": "Rate the folling story, which should following the given theme.\n***** Given Theme *****\n"
-        + themeExample
-        + "\n***** Competition Entry *****\n"
-        + entryExample
-        + "\n**** Rating *****\nUse the following rating system:\n"
-        + criteria["craftsmanship"]
-        + dictToString(craftsmanshipDefinition)
-        + "\n\nReturn a single character at the rating:\n'f'\n\nRate the folling story:\n****\n"
-        + entry
-        + "\n****\nUse the following rating system:\n"
-        + criteria["craftsmanship"]
-        + dictToString(craftsmanshipDefinition)
-        + "\n\nReturn a single character at the rating:\n'",
-        "creativity": "Rate the folling story, which should following the given theme.\n***** Given Theme *****\n"
-        + themeExample
-        + "\n***** Competition Entry *****\n"
-        + entryExample
-        + "\n**** Rating *****\nUse the following rating system:\n"
-        + criteria["creativity"]
-        + dictToString(creativityDefinition)
-        + "\n\nReturn a single character at the rating:\n'f'\n\nRate the folling story:\n****\n"
-        + entry
-        + "\n****\nUse the following rating system:\n"
-        + criteria["creativity"]
-        + dictToString(creativityDefinition)
-        + "\n\nReturn a single character at the rating:\n'",
-        "consistency": "Rate the folling story, which should following the given theme.\n***** Given Theme *****\n"
-        + themeExample
-        + "\n***** Competition Entry *****\n"
-        + entryExample
-        + "\n**** Rating *****\nUse the following rating system:\n"
-        + criteria["consistency"]
-        + dictToString(consistencyDefinition)
-        + "\n\nReturn a single character at the rating:\n'f'\n\nRate the folling story:\n****\n"
-        + entry
-        + "\n****\nUse the following rating system:\n"
-        + criteria["consistency"]
-        + dictToString(consistencyDefinition)
-        + "\n\nReturn a single character at the rating:\n'",
+        "craftsmanship": generatePrompt(
+            themeExample, entryExample, "craftsmanship", craftsmanshipDefinition
+        )
+        + "f'\n\n"
+        + generatePrompt(theme, entry, "craftsmanship", craftsmanshipDefinition),
+        "creativity": generatePrompt(
+            themeExample, entryExample, "creativity", creativityDefinition
+        )
+        + "f'\n\n"
+        + generatePrompt(theme, entry, "creativity", creativityDefinition),
+        "consistency": generatePrompt(
+            themeExample, entryExample, "consistency", consistencyDefinition
+        )
+        + "f'\n\n"
+        + generatePrompt(theme, entry, "consistency", consistencyDefinition),
     }
 
 
 config = ExLlamaV2Config()
 config.model_dir = ratingModelDirectory
 config.prepare()
-
-config.max_seq_len = 4096
+config.max_seq_len = 2048
 
 model = ExLlamaV2(config)
-print("Loading model: " + ratingModelDirectory)
-
-# model.load()
-
 tokenizer = ExLlamaV2Tokenizer(config)
 
 
 cache = ExLlamaV2Cache(
-    model, lazy=True, max_seq_len=16384
+    model, lazy=True, max_seq_len=8192
 )  # Cache needs to accommodate the batch size
 model.load_autosplit(cache)
 
 
 max_new_tokens = 1
 
-ranking = {}
 
+# Dictionary for ranking the letters, i.e. a=0, b=1, c=2, etc.
+ranking = {}
 for i in range(len(creativityDefinition)):
-    ranking[chr(i + ord("a"))] = int(tokenizer.encode(chr(i + ord("a"))))
+    ranking[chr(i + ord("À"))] = int(tokenizer.encode(chr(i + ord("À"))))
+
 
 generatedTexts = pickle.load(open(f"{folderName}/{fileName}.p", "rb"))
 stories = generatedTexts["modelOutput"]
@@ -255,8 +242,7 @@ theme = generatedTexts["theme"]
 
 ratings = {}
 for key, entry in tqdm.tqdm(stories.items()):
-    prompts = generatePrompt(theme, entry)
-    # print(prompts['creativity'])
+    prompts = generateAllPrompt(theme, entry)
     ratingValue = {}
     for crit, prompt in prompts.items():
         cache.current_seq_len = 0
@@ -271,12 +257,12 @@ for key, entry in tqdm.tqdm(stories.items()):
         logitsResults = torch.tensor(logitsResults)
         probabilities = torch.nn.functional.softmax(logitsResults, dim=0)
         scores = torch.tensor(range(len(probabilities)), dtype=torch.float)
-        print(key, crit, torch.mean(scores * probabilities) * 10)
-        ratingValue[crit] = float(torch.mean(scores * probabilities) * 10)
+        print(key, crit, torch.sum(scores * probabilities), probabilities)
+        ratingValue[crit] = probabilities #float(torch.sum(scores * probabilities))
     ratings[key] = ratingValue
 
 print(ratings)
 
 
-pickle.dump(ratings, open(f"{fileName}_Ratings_{ratingLLM}_v2.p", "wb"))
-print("Saved ratings to " + f"{fileName}_Ratings_{ratingLLM}_v2.p")
+pickle.dump(ratings, open(f"{fileName}_Ratings_{ratingLLM}_probabilities.p", "wb"))
+print("Saved ratings to " + f"{fileName}_Ratings_{ratingLLM}_probabilities.p")

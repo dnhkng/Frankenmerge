@@ -8,7 +8,7 @@ REVIEWER="Mixtral"
 # Loop from 1 to 10
 for i in {1..10}
 do
-    python RateStories3.py $i $GENERATOR $REVIEWER
+    python RateStoriesFloats.py $i $GENERATOR $REVIEWER
 done
 
 # Set the two arguments
@@ -18,7 +18,7 @@ REVIEWER="Nous-Capybara"
 # Loop from 1 to 10
 for i in {1..10}
 do
-    python RateStories3.py $i $GENERATOR $REVIEWER
+    python RateStoriesFloats.py $i $GENERATOR $REVIEWER
 done
 
 
@@ -31,7 +31,7 @@ REVIEWER="Mixtral"
 # Loop from 1 to 10
 for i in {1..10}
 do
-    python RateStories3.py $i $GENERATOR $REVIEWER
+    python RateStoriesFloats.py $i $GENERATOR $REVIEWER
 done
 
 # Set the two arguments
@@ -41,7 +41,7 @@ REVIEWER="Nous-Capybara"
 # Loop from 1 to 10
 for i in {1..10}
 do
-    python RateStories3.py $i $GENERATOR $REVIEWER
+    python RateStoriesFloats.py $i $GENERATOR $REVIEWER
 done
 
 
@@ -56,7 +56,7 @@ REVIEWER="Mixtral"
 # Loop from 1 to 10
 for i in {1..10}
 do
-    python RateStories3.py $i $GENERATOR $REVIEWER
+    python RateStoriesFloats.py $i $GENERATOR $REVIEWER
 done
 
 
@@ -68,7 +68,7 @@ REVIEWER="Nous-Capybara"
 # Loop from 1 to 10
 for i in {1..10}
 do
-    python RateStories3.py $i $GENERATOR $REVIEWER
+    python RateStoriesFloats.py $i $GENERATOR $REVIEWER
 done
 
 
