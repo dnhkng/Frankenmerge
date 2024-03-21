@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Custom Animation</title>
+    <style>
+        /* Include your CSS here */
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #container {
+            position: fixed;
+            touch-action: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container" touch-action="none"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/88/three.min.js"></script>
+    <!-- Include your vertex and fragment shaders here -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+    void main() {
+        gl_Position = vec4( position, 1.0 );
+    }
+</script>
+    <script id="fragmentShader" type="x-shader/x-fragment">
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform vec2 u_mouse;
+  
+  #define PI 3.14159265359
+  #define TAU 6.28318530718
+
+    float distLine(vec3 ro, vec3 rd, vec3 p) {
+      // area of a parallelagram
+      // the length of the cross of the base and the distance between the origin and the point
+      // ro = ray origin, rd = ray direction, p = point
+      // so: length( cross( point - ray origin , ray direction ) )
+      return length(cross(p - ro, rd));
+    }
+    float df_line( in vec2 a, in vec2 b, in vec2 p)
+    {
+      vec2 pa = p - a;
+      vec2 ba = b - a;
+      float h = clamp(dot(pa,ba) / dot(ba,ba), 0., 1.);	
+      return length(pa - ba * h);
+    }
+    void main() {
+      
+      vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.y, u_resolution.x);
+
+      vec3 lookAt = vec3(-0., -.08, 0.);
+      vec3 camera_position = vec3(sin(u_time * .5) * 1.5, 0., cos(u_time * .5) * 1.5); // spinning the camera around the origin
+      camera_position.y = u_mouse.y * 3. + cos(u_time * .5) * .5 + .5;
+
+      vec3 forward = normalize(lookAt-camera_position);
+      vec3 right = normalize(vec3(forward.z, 0., -forward.x ));
+      vec3 up = normalize(cross(forward,right));
+
+      float FOV = 0.6;
+
+      vec3 rd = normalize(forward + FOV*uv.x*right + FOV*uv.y*up);
+      
+      float s = sin(u_time);
+      float c = cos(u_time);
+      
+      // rd.xy *= mat2(s, -c, c, s);
+
+      mat4 eyeSpace = mat4(
+        right, 0,
+        up, 0,
+        rd, 0,
+        0,0,0,1
+      );
+      eyeSpace = mat4(
+        1.,0,0,-camera_position.x,
+        0,1.,0,-camera_position.y,
+        0,0,1.,-camera_position.z,
+        0,0,0,1.
+       ) * eyeSpace;
+      
+
+      float focal_length = 1. / FOV;
+
+      float pointSDF = 20.;
+      float render;
+      float fields;
+      
+      float delta = .2;
+      vec3 points[17];
+      vec3 projs[17];
+      vec2 xs[17];
+      float amod = TAU / 6.;
+      for(int i = 0; i < 6; i += 1) {
+        float a = amod * .5 + amod * float(i);
+        points[i] = vec3(cos(a) * .15, sin(a) * .15, 0.);
+        points[i].z = sin(u_time * 5. + points[i].x) * .02 + cos(u_time * 5. + points[i].y) * .02;
+        points[i].y += sin(u_time * 5. + points[i].y) * .02;
+        projs[i] = (vec4(points[i], 1.) * eyeSpace).xyz;
+        xs[i] = focal_length * projs[i].xy / projs[i].z;
+        pointSDF = min(pointSDF, distLine(camera_position, rd, points[i]));
+        
+        if(i == 4) {
+          points[7] = vec3(cos(a) * .25, sin(a) * .25, 0.);
+          projs[7] = (vec4(points[7], 1.) * eyeSpace).xyz;
+          xs[7] = focal_length * projs[7].xy / projs[7].z;
+        } else if(i == 5) {
+          points[8] = vec3(cos(a) * .25, sin(a) * .25, 0.);
+          projs[8] = (vec4(points[8], 1.) * eyeSpace).xyz;
+          xs[8] = focal_length * projs[8].xy / projs[8].z;
+          pointSDF = min(pointSDF, distLine(camera_position, rd, points[8]));
+        } else if(i == 0) {
+          points[9] = vec3(cos(a) * .25, sin(a) * .25, 0.);
+          projs[9] = (vec4(points[9], 1.) * eyeSpace).xyz;
+          xs[9] = focal_length * projs[9].xy / projs[9].z;
+        }
+      }
+      vec3 offset = vec3(-.22, 0., 0.);
+      amod = TAU / 5.;
+      for(int i = 10; i < 16; i += 1) {
+        float a =  amod * 3.5 + amod * float(i);
+        points[i] = offset + vec3(cos(a) * .12, sin(a) * .12, 0.);
+        points[i].z = sin(u_time * 5. + points[i].x) * .02 + cos(u_time * 5. + points[i].y) * .02;
+        points[i].y += sin(u_time * 5. + points[i].y) * .02;
+        projs[i] = (vec4(points[i], 1.) * eyeSpace).xyz;
+        xs[i] = focal_length * projs[i].xy / projs[i].z;
+        if(i > 12) {
+          pointSDF = min(pointSDF, distLine(camera_position, rd, points[i]));
+        }
+        
+        if(i == 13) {
+          points[16] = offset + vec3(cos(a) * .22, sin(a) * .22, 0.);
+          projs[16] = (vec4(points[16], 1.) * eyeSpace).xyz;
+          xs[16] = focal_length * projs[16].xy / projs[16].z;
+        }
+      }
+      
+      points[6] = points[1] + vec3(0, .1, 0);
+      projs[6] = (vec4(points[6], 1.) * eyeSpace).xyz;
+      xs[6] = focal_length * projs[6].xy / projs[6].z;
+      pointSDF = min(pointSDF, distLine(camera_position, rd, points[6]));
+
+      // Rendering the points
+      render = smoothstep(.01, .014, pointSDF);
+
+      // Rendering the wireframe
+      float lineSDF = df_line(xs[0], xs[1], uv);
+      lineSDF = min(lineSDF, df_line(xs[1], xs[2], uv));
+      lineSDF = min(lineSDF, df_line(xs[2], xs[3], uv));
+      lineSDF = min(lineSDF, df_line(xs[3], xs[4], uv));
+      lineSDF = min(lineSDF, df_line(xs[4], xs[5], uv));
+      lineSDF = min(lineSDF, df_line(xs[5], xs[0], uv));
+      lineSDF = min(lineSDF, df_line(xs[0], xs[9], uv));
+      lineSDF = min(lineSDF, df_line(xs[5], xs[8], uv));
+      lineSDF = min(lineSDF, df_line(xs[1], xs[6], uv));
+      lineSDF = min(lineSDF, df_line(xs[4], xs[7], uv));
+      
+      lineSDF = min(lineSDF, df_line(xs[2], xs[13], uv));
+      lineSDF = min(lineSDF, df_line(xs[13], xs[14], uv));
+      lineSDF = min(lineSDF, df_line(xs[14], xs[15], uv));
+      lineSDF = min(lineSDF, df_line(xs[15], xs[3], uv));
+      lineSDF = min(lineSDF, df_line(xs[13], xs[16], uv));
+
+      pointSDF = min(pointSDF, lineSDF);
+
+      render = min(render, smoothstep(.003, .007 + lineSDF * .2, lineSDF));
+      fields = smoothstep(-.5, .9, sin((pointSDF-u_time*.02)*300.)) * .15 * (1. - clamp(pointSDF*5., 0., 1.));
+
+      gl_FragColor = vec4(fields);
+      gl_FragColor += 1. - render;
+    }
+</script>
+    <!-- Your Three.js setup and rendering code here -->
+    <script>
+        // Initialize Three.js and attach to #container
+        /*
+        Most of the stuff in here is just bootstrapping. Essentially it's just
+        setting ThreeJS up so that it renders a flat surface upon which to draw 
+        the shader. The only thing to see here really is the uniforms sent to 
+        the shader. Apart from that all of the magic happens in the HTML view
+        under the fragment shader.
+        */
+
+        let container;
+        let camera, scene, renderer;
+        let uniforms;
+
+        let loader = new THREE.TextureLoader();
+        let texture;
+        loader.setCrossOrigin("anonymous");
+        loader.load(
+            'https://s3-us-west-2.amazonaws.com/s.cdpn.io/982762/noise.png',
+            function do_something_with_texture(tex) {
+                texture = tex;
+                texture.wrapS = THREE.RepeatWrapping;
+                texture.wrapT = THREE.RepeatWrapping;
+                texture.minFilter = THREE.LinearFilter;
+                init();
+                animate();
+            }
+        );
+
+        function init() {
+            container = document.getElementById('container');
+
+            camera = new THREE.Camera();
+            camera.position.z = 1;
+
+            scene = new THREE.Scene();
+
+            var geometry = new THREE.PlaneBufferGeometry(2, 2);
+
+            uniforms = {
+                u_time: { type: "f", value: 1.0 },
+                u_resolution: { type: "v2", value: new THREE.Vector2() },
+                u_noise: { type: "t", value: texture },
+                u_mouse: { type: "v2", value: new THREE.Vector2() }
+            };
+
+            var material = new THREE.ShaderMaterial({
+                uniforms: uniforms,
+                vertexShader: document.getElementById('vertexShader').textContent,
+                fragmentShader: document.getElementById('fragmentShader').textContent
+            });
+            material.extensions.derivatives = true;
+
+            var mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+
+            renderer = new THREE.WebGLRenderer();
+            // renderer.setPixelRatio( window.devicePixelRatio );
+
+            container.appendChild(renderer.domElement);
+
+            onWindowResize();
+            window.addEventListener('resize', onWindowResize, false);
+
+            document.addEventListener('pointermove', (e) => {
+                let ratio = window.innerHeight / window.innerWidth;
+                uniforms.u_mouse.value.x = (e.pageX - window.innerWidth / 2) / window.innerWidth / ratio;
+                uniforms.u_mouse.value.y = (e.pageY - window.innerHeight / 2) / window.innerHeight * -1;
+
+                e.preventDefault();
+            });
+        }
+
+        function onWindowResize(event) {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            uniforms.u_resolution.value.x = renderer.domElement.width;
+            uniforms.u_resolution.value.y = renderer.domElement.height;
+        }
+
+        function animate(delta) {
+            requestAnimationFrame(animate);
+            render(delta);
+        }
+
+
+
+
+
+
+        let capturer = new CCapture({
+            verbose: true,
+            framerate: 60,
+            // motionBlurFrames: 4,
+            quality: 90,
+            format: 'webm',
+            workersPath: 'js/'
+        });
+        let capturing = false;
+
+        isCapturing = function (val) {
+            if (val === false && window.capturing === true) {
+                capturer.stop();
+                capturer.save();
+            } else if (val === true && window.capturing === false) {
+                capturer.start();
+            }
+            capturing = val;
+        }
+        toggleCapture = function () {
+            isCapturing(!capturing);
+        }
+
+        window.addEventListener('keyup', function (e) { if (e.keyCode == 68) toggleCapture(); });
+
+        let then = 0;
+        function render(delta) {
+
+            uniforms.u_time.value = delta * 0.0015;
+            renderer.render(scene, camera);
+
+            if (capturing) {
+                capturer.capture(renderer.domElement);
+            }
+        }
+    </script>
+</body>
+
+</html>

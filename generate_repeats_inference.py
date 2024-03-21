@@ -63,7 +63,7 @@ model_directory =  f"/home/dnhkng/Documents/models/{modelName}"
 config = ExLlamaV2Config()
 config.model_dir = model_directory
 config.prepare()
-config.max_seq_len=4096
+config.max_seq_len=2048
 
 model = ExLlamaV2(config)
 print("Loading model: " + model_directory)
@@ -228,7 +228,7 @@ if modelName == "Nous-Capybara-34B-4.0bpw":
 
 # else:
 #     prompt = f"""<s> [INST] You are a profession author who writes excellent creative prose. You are writing for a competition, and are aiming to win! The theme for the contest is: "{theme}" [/INST]"""
-prompt = f"""<s> [INST] You are a profession author who writes excellent creative prose. You are writing for a competition, and are aiming to win! The theme for the contest is: "{theme}" [/INST]"""
+prompt = f"""<s> [INST] You are a professional author who writes excellent creative prose. You are writing for a competition and are aiming to win! The theme for the contest is: "{theme}" [/INST]"""
 
 # prompt = tinyLlamaPrompt(theme)
 promptLength = len(prompt) 
@@ -240,13 +240,18 @@ layersDict = generateLayerDict(num_layers)
 modelOutput = {}
 
 # CONTINUE
-# previous = pickle.load( open( f"{modelName}-stories_{number}.p", "rb" ) )
-# modelOutput = previous['modelOutput']
+previous = pickle.load( open( f"{modelName}-stories_{number}.p", "rb" ) )
+modelOutput = previous['modelOutput']
 
 # generated many samples, so we can compare them
 settings.temperature = 0.8
 for i in range(1,10):
     key = f"{i}_0"
+
+    if key in modelOutput:
+        print(f"{key=} already generated")
+        continue
+    
     model, cache, generator = buildModel(model, layersDict['0_0'], cache_class)
     generatedText = generate(generator, prompt, settings, max_new_tokens, seed = i)
     generatedText = generatedText[promptLength:] # remove prompt
@@ -262,6 +267,7 @@ settings.temperature = 0.0
 for i, (key, layers) in tqdm(enumerate(layersDict.items()), total=len(layersDict)):
 
     if key in modelOutput:
+        print(f"{key=} already generated")
         continue
 
     model, cache, generator = buildModel(model, layers, cache_class)
